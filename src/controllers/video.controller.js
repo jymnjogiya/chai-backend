@@ -178,13 +178,14 @@ const deleteVideo = asyncHandler(async (req, res) => {
     const deletedVideo = await Video.findOneAndDelete(criteria).lean()
 
     return res
-    .status(200)
-    .json(
-        200,
-        deletedVideo,
-        "Video removed successfully"
-    )
-
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                deletedVideo,
+                "Video removed successfully"
+            )
+        )
 })
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
@@ -214,9 +215,7 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
     return res
     .status(200)
     .json(
-        200,
-        updatedVideo,
-        'video status updated!'
+        new ApiResponse(200,updatedVideo,'video status updated!')
     )
 
 })
