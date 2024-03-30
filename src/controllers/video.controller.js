@@ -97,22 +97,128 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
 const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params
-    //TODO: get video by id
+
+    if (!videoId) {
+        throw new ApiError(400,"Title and Description are required")   
+    }
+
+    const video = await Video.findById(videoId).lean()
+
+    return res
+    .statu(200)
+    .json(
+        new ApiResponse(200,video,"Success")
+    )
 })
 
 const updateVideo = asyncHandler(async (req, res) => {
-    const { videoId } = req.params
+    const { videoId, title, description } = req.params
     //TODO: update video details like title, description, thumbnail
+
+    if (!videoId) {
+        throw new ApiError(400,"videoId is required")   
+    }
+
+    let criteria = {
+        owner:req.user?._id,
+        _id:videoId
+    }
+
+    let payload = {}
+
+    if (title) {
+        payload.title = title
+    }
+
+    if (description) {
+        payload.description = description
+    }
+
+    if (req?.file?.path) {
+
+        let thumbNailLocalPath = req?.file?.path
+
+        if (!thumbNailLocalPath) {
+            throw new ApiError(400, "Thumbnail file is missing")
+        }
+
+        const newThumbnail = await uploadOnCloudinary(thumbNailLocalPath)
+    
+        if (!newThumbnail.url) {
+            throw new ApiError(400, "Error while updating avatar")
+        }
+        payload.thumbnail = newThumbnail?.url
+    }
+
+    const video = await Video.findOneAndUpdate(criteria,payload).lean()
+
+    return res
+    .status(200)
+    .json(new ApiResponse(
+        200,
+        video,
+        "Video Updated Successfully!"
+    ))
 
 })
 
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     //TODO: delete video
+
+    if (!videoId) {
+        throw new ApiError(400,"videoId is required")   
+    }
+
+    let criteria = {
+        _id: videoId,
+        owner: req.user._id
+    }
+
+    const deletedVideo = await Video.findOneAndDelete(criteria).lean()
+
+    return res
+    .status(200)
+    .json(
+        200,
+        deletedVideo,
+        "Video removed successfully"
+    )
+
 })
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
     const { videoId } = req.params
+    
+    if (!videoId) {
+        throw new ApiError(400,"videoId is required")   
+    }
+
+    let criteria = {
+        _id: videoId,
+        owner:req?.user?._id
+    }
+
+    const oldVideo = await Video.findById(videoId).select('isPublished').lean()
+
+    if (!oldVideo) {
+        throw new ApiError(404, 'Video not found');
+    }
+
+    const updatedVideo = await Video.findOneAndUpdate(
+        criteria,
+        { isPublished: !oldVideo.isPublished },
+        { new: true, lean: true }
+    );
+
+    return res
+    .status(200)
+    .json(
+        200,
+        updatedVideo,
+        'video status updated!'
+    )
+
 })
 
 export {
